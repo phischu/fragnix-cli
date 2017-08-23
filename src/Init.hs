@@ -1,14 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Init where
 
-import Network.Wreq (
-  getWith, defaults, header,
-  asJSON, responseBody)
 
+import FragnixServer (
+  EnvironmentAPI)
 import Paths_fragnix_cli (
   getDataDir)
 import Fragnix.Environment (
   persistEnvironment, environmentPath, builtinEnvironmentPath)
+
+import Servant.Client (
+  ClientEnv(ClientEnv), BaseUrl(BaseUrl), Scheme(Http),
+  client, runClientM)
+import Network.HTTP.Client (
+  newManager, defaultManagerSettings)
 import Language.Haskell.Names (
   Environment, Symbol)
 import Language.Haskell.Exts (
@@ -16,12 +21,14 @@ import Language.Haskell.Exts (
 
 import qualified Data.Map as Map (
   fromList)
-import Control.Lens (
-  (&), view, (.~))
 import System.Directory (
   listDirectory, createDirectoryIfMissing, copyFile)
 import Data.Traversable (
   for)
+import Control.Exception (
+  throwIO)
+import Data.Proxy (
+  Proxy(Proxy))
 
 
 fragnixInit :: String -> IO ()
@@ -55,14 +62,19 @@ fragnixInit environmentName = do
 
 getEnvironment :: String -> IO Environment
 getEnvironment environmentName = do
-  let options = defaults & header "Accept" .~ ["application/json"]
-  response <- getWith options ("http://127.0.0.1:3000/environments/" ++ environmentName)
-  asJSON response >>= return . constructEnvironment . view responseBody
+  manager <- newManager defaultManagerSettings
+  let clientEnv = ClientEnv manager (BaseUrl Http "localhost" 8081 "")
+      query = client (Proxy :: Proxy EnvironmentAPI) environmentName
+  result <- runClientM query clientEnv
+  case result of
+    Left err ->
+      throwIO err
+    Right flatEnvironment ->
+      return (constructEnvironment flatEnvironment)
 
 
 constructEnvironment :: [(String, [Symbol])] -> Environment
 constructEnvironment = Map.fromList . map (\(moduleName, symbols) ->
   (ModuleName () moduleName, symbols))
-
 
 

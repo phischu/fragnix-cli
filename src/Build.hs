@@ -24,7 +24,6 @@ import System.Clock (
 import qualified Data.Map as Map (union)
 
 import Control.Monad (forM_,forM)
-import System.Environment (getArgs)
 import Text.Printf (printf)
 
 
