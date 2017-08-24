@@ -11,11 +11,10 @@ import Fragnix.Slice (
 import Fragnix.Environment (
   persistEnvironment, environmentPath, builtinEnvironmentPath)
 
+import RunClientM (
+  run)
 import Servant.Client (
-  ClientEnv(ClientEnv), BaseUrl(BaseUrl), Scheme(Http),
-  client, runClientM, ClientM)
-import Network.HTTP.Client (
-  newManager, defaultManagerSettings)
+  client)
 import Language.Haskell.Names (
   Environment, Symbol)
 import Language.Haskell.Exts (
@@ -27,8 +26,6 @@ import System.Directory (
   listDirectory, createDirectoryIfMissing, copyFile)
 import Data.Traversable (
   for)
-import Control.Exception (
-  throwIO)
 import Data.Proxy (
   Proxy(Proxy))
 
@@ -72,18 +69,6 @@ getEnvironment environmentName = do
 getEnvironmentSlices :: String -> IO [Slice]
 getEnvironmentSlices environmentName = do
   run (client (Proxy :: Proxy EnvironmentSlicesAPI) environmentName)
-
-run :: ClientM a -> IO a
-run query = do
-  manager <- newManager defaultManagerSettings
-  let clientEnv = ClientEnv manager (BaseUrl Http "localhost" 8081 "")
-  result <- runClientM query clientEnv
-  case result of
-    Left err ->
-      throwIO err
-    Right a ->
-      return a
-
 
 constructEnvironment :: [(String, [Symbol])] -> Environment
 constructEnvironment = Map.fromList . map (\(moduleName, symbols) ->

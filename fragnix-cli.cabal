@@ -16,8 +16,10 @@ data-files:          fragnix/cbits/*.c
 
 executable fragnix-cli
   main-is:             Main.hs
-  other-modules:       Build
-                       Init
+  other-modules:       Build,
+                       Init,
+                       Fetch,
+                       RunClientM
   -- other-extensions:    
   build-depends:       base >=4.9 && <4.10,
                        containers >=0.5.0.0 && <0.6,
